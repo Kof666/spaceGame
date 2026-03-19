@@ -17,3 +17,5 @@ apktool b --use-aapt2 build_folder -o spacegame.apk
 
 signera
 apksigner sign --ks min-nyckel.keystore --ks-key-alias koffe spacegame.apk
+
+hep
