@@ -9,26 +9,36 @@ local lastTouchX, lastTouchY = 0, 0
 local isTouching = false
 
 local playerName = "" --spelarnamn för inmatning av ny spelare
-local player = {} --spelarens symbol..
+-- local player = {} --spelarens symbol..
 local highscores = {}
-local astroids = {} -- En tabell för att hålla alla fallande rektanglar
-local coins = {} -- tabbel för fallande coins
-local ufos = {}
+-- local astroids = {} -- En tabell för att hålla alla fallande rektanglar
+-- local coins = {} -- tabbel för fallande coins
+-- local ufos = {}
 local ufo_level = 2
 local col_level = 4
-local points = 0
+-- local points = 0
 local counter = 0
 local coinCounter = 0
-local level = 1
+-- local level = 1
 local collisionRadius = 10
 -- local scale = 50 / player.img:getWidth()
 local halfSize = 25 -- Hälften av din nya storlek (50 / 2)
+
+local player = {} --spelarens symbol..
+local coins, astroids, ufos
+local points, level
+
 
 --- Initializes the game on startup.
 -- Runs only once. Used to load resources such as images, 
 -- sounds, and fonts, and to set initial global variables.
 -- @tparam table arg Table of command line arguments to pass to the game (optional).
 function love.load()
+    points = 0
+    level = 1
+    astroids = {}
+    coins = {}
+    ufos = {}
     -- För att se output i konsolen (om du har conf.lua inställt)
     io.stdout:setvbuf("no")
     print("Spelaren är redo. Rektanglar kommer att falla!")
@@ -48,7 +58,8 @@ function love.load()
 
     -- Ladda in bildfilen
     player.img = love.graphics.newImage("pics/player.png")
-    
+    -- halfSize = (player.img:getWidth() * 0.5)
+
     -- Startvärden
     player.x = love.graphics.getWidth() / 2
     player.y = love.graphics.getHeight() - 50
@@ -79,13 +90,13 @@ function love.load()
 
     ui.createdListFile(highscores, 'scores.txt')
     --skapar fil med highscore listan 
-    -- if love.filesystem.getInfo("scores.txt") then
-    --     local data = love.filesystem.read("scores.txt")
-    --     for line in data:gmatch("[^\r\n]+") do
-    --         local name, score = line:match("([^,]+),(.+)")
-    --         table.insert(highscores, {name = name, score = tonumber(score)})
-    --     end
-    -- end
+    if love.filesystem.getInfo("scores.txt") then
+        local data = love.filesystem.read("scores.txt")
+        for line in data:gmatch("[^\r\n]+") do
+            local name, score = line:match("([^,]+),(.+)")
+            table.insert(highscores, {name = name, score = tonumber(score)})
+        end
+    end
 
 end
 

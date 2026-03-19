@@ -3,14 +3,17 @@
 -- @author koffeberg
 
 
---- This function is called once before the LÖVE engine is loaded.
--- It is used to set window dimensions, titles, and engine modules.
--- @tparam table t The configuration table containing all engine settings
 function love.conf(t)
-    t.console = true
+    t.identity = "mitt_spel" -- Bra för att spara highscore/inställningar
+    t.version = "11.5"
 
-    t.window.width = 800    -- Bredd i pixlar
-    t.window.height = 600    -- Höjd i pixlar
-    t.window.resizable = true -- Tillåt användaren att ändra storlek
-    t.window.title = "Mitt fantastiska spel"
+    -- För mobilen:
+    t.window.fullscreen = true  -- Viktigt för mobil!
+    t.window.fullscreentype = "desktop" -- Använd hela mobilskärmen
+    
+    -- För datorn:
+    t.window.width = 800
+    t.window.height = 600
+    t.window.resizable = true
+    t.window.title = "spaceGame"
 end

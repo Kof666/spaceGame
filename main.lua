@@ -9,26 +9,36 @@ local lastTouchX, lastTouchY = 0, 0
 local isTouching = false
 
 local playerName = "" --spelarnamn för inmatning av ny spelare
-local player = {} --spelarens symbol..
+-- local player = {} --spelarens symbol..
 local highscores = {}
-local astroids = {} -- En tabell för att hålla alla fallande rektanglar
-local coins = {} -- tabbel för fallande coins
-local ufos = {}
+-- local astroids = {} -- En tabell för att hålla alla fallande rektanglar
+-- local coins = {} -- tabbel för fallande coins
+-- local ufos = {}
 local ufo_level = 2
 local col_level = 4
-local points = 0
+-- local points = 0
 local counter = 0
 local coinCounter = 0
-local level = 1
+-- local level = 1
 local collisionRadius = 10
 -- local scale = 50 / player.img:getWidth()
 local halfSize = 25 -- Hälften av din nya storlek (50 / 2)
+
+local player = {} --spelarens symbol..
+local coins, astroids, ufos
+local points, level
+
 
 --- Initializes the game on startup.
 -- Runs only once. Used to load resources such as images, 
 -- sounds, and fonts, and to set initial global variables.
 -- @tparam table arg Table of command line arguments to pass to the game (optional).
 function love.load()
+    points = 0
+    level = 1
+    astroids = {}
+    coins = {}
+    ufos = {}
     -- För att se output i konsolen (om du har conf.lua inställt)
     io.stdout:setvbuf("no")
     print("Spelaren är redo. Rektanglar kommer att falla!")
@@ -36,19 +46,20 @@ function love.load()
     print("\nHighscore filen sparas här: " .. tostring(love.filesystem.getSaveDirectory())) --/ skriver ut var highscore filen sparas
     
     local path = love.filesystem.getSaveDirectory()
-    print("Öppnar mapp: " .. path)
+    -- print("Öppnar mapp: " .. path)
     -- Detta kommando öppnar mappen i Ubuntus filhanterare
-    os.execute("xdg-open " .. path)
+    -- os.execute("xdg-open " .. path)
     
     gameState = "playing" -- Kan vara "playing", "highscore_list" eller "gameover"
 
     background = love.graphics.newImage("pics/background.png")
 
     myBigFont = love.graphics.newFont(60)
-
+    myMediumFont = love.graphics.newFont(20)
     -- Ladda in bildfilen
     player.img = love.graphics.newImage("pics/player.png")
-    
+    -- halfSize = (player.img:getWidth() * 0.5)
+
     -- Startvärden
     player.x = love.graphics.getWidth() / 2
     player.y = love.graphics.getHeight() - 50
@@ -79,13 +90,13 @@ function love.load()
 
     ui.createdListFile(highscores, 'scores.txt')
     --skapar fil med highscore listan 
-    -- if love.filesystem.getInfo("scores.txt") then
-    --     local data = love.filesystem.read("scores.txt")
-    --     for line in data:gmatch("[^\r\n]+") do
-    --         local name, score = line:match("([^,]+),(.+)")
-    --         table.insert(highscores, {name = name, score = tonumber(score)})
-    --     end
-    -- end
+    if love.filesystem.getInfo("scores.txt") then
+        local data = love.filesystem.read("scores.txt")
+        for line in data:gmatch("[^\r\n]+") do
+            local name, score = line:match("([^,]+),(.+)")
+            table.insert(highscores, {name = name, score = tonumber(score)})
+        end
+    end
 
 end
 
@@ -357,7 +368,7 @@ function love.draw()
             love.graphics.draw(starImg, coin.x, coin.y, 0, 0.05, 0.05)
         end    
 
-        -- Rita ut textinformation
+        -- Rita ut textinformation--------------------------------------------------------------------------------------------------------------------------------
         love.graphics.setFont(love.graphics.newFont(14))
         love.graphics.setColor(1, 1, 1) -- Vit färg för text
         love.graphics.print("Styr med piltangenterna. Undvik rektanglarna och ta mynten!", 10, 10)
@@ -368,104 +379,95 @@ function love.draw()
 
     if gameState == "gameover" then
 
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.draw(background, 0, 0)
-        -- Sätt fonten vi skapade
-        love.graphics.setFont(myBigFont)
-        
-        -- Beräkna mitten vertikalt
         local screenWidth = love.graphics.getWidth()
         local screenHeight = love.graphics.getHeight()
-        local textY = screenHeight / 2 - 30 -- Justera för fontens höjd
-        
+        local centerX = screenWidth / 2
+        local centerY = screenHeight / 2
 
-        -- printf(text, x, y, limit, align)
-        love.graphics.setColor(1, 0, 0) -- Röd färg
-        love.graphics.printf("GAME OVER", 0, textY-150, screenWidth, "center")
-        
-        love.graphics.setFont(love.graphics.newFont(20))
+        -- 1. GAME OVER (Stor röd text)
+        love.graphics.setFont(myBigFont)
+        love.graphics.setColor(1, 0, 0)
+        love.graphics.printf("GAME OVER", 0, centerY - 150, screenWidth, "center")
 
-        love.graphics.print("Skriv ditt namn: " .. playerName, 300, 200)
-        love.graphics.printf("Tryck ENTER för att spara", 0, textY, screenWidth, "center")
+        -- 2. NAMN-INMATNING (Centrerad)
+        -- Vi använder printf även här för att slippa räkna ut exakt X
+        love.graphics.setFont(love.graphics.newFont(24))
+        love.graphics.setColor(1, 1, 1) -- Vit text
+        love.graphics.printf("Ditt namn: " .. playerName, 0, centerY - 50, screenWidth, "center")
 
+        -- 3. INSTRUKTION (Centrerad)
+        love.graphics.printf("Tryck ENTER för att spara", 0, centerY + 20, screenWidth, "center")
         
     elseif gameState == "highscore_list" then
+        -- 1. Bakgrund
         love.graphics.setColor(1, 1, 1)
-        love.graphics.draw(background, 0, 0)
+        love.graphics.draw(background, 0, 0, 0, love.graphics.getWidth()/background:getWidth(), love.graphics.getHeight()/background:getHeight())
 
-
-        -- Sätt fonten vi skapade
-        love.graphics.setFont(myBigFont)
-        
-        -- Beräkna mitten vertikalt
         local screenWidth = love.graphics.getWidth()
         local screenHeight = love.graphics.getHeight()
-        local textY = screenHeight / 2 - 30 -- Justera för fontens höjd
-        
 
-        -- printf(text, x, y, limit, align)
-        love.graphics.setColor(1, 0, 0) -- Röd färg
-        love.graphics.printf("GAME OVER", 0, textY-150, screenWidth, "center")
-        
-        -- -- Glöm inte att återställa fonten till standard om du ritar annan text
-        -- -- love.graphics.setFont(love.graphics.newFont(12))
+        -- 2. Rubrik
+        love.graphics.setFont(myBigFont)
+        love.graphics.setColor(1, 1, 0)
+        love.graphics.printf("TOPPLISTA", 0, 50, screenWidth, "center")
 
-        love.graphics.setFont(love.graphics.newFont(20))
-        local textY = screenHeight / 2 - 100 -- Justera för fontens höjd
-        love.graphics.printf("--- HIGHSCORE ---", 0, textY, screenWidth, "center")
+        -- 3. Listan (Topp 10)
+        -- Vi använder en fast font som vi skapat i love.load för att spara prestanda
+        love.graphics.setFont(myMediumFont) 
+        love.graphics.setColor(1, 1, 1)
 
-        --''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-        local hight = 80
-
-        table.sort(highscores, function(a, b)
-        if a.score == b.score then
-            -- Om poängen är lika, sortera på namn istället (A-Ö)
-            return a.name < b.name
-        else
-            -- Annars sortera på poäng som vanligt
-            return a.score > b.score
-        end
-    end)
-
-        -- loop to print three best highscore
-        love.graphics.setFont(love.graphics.newFont(20))
-        for i = 1, math.min(3, #highscores) do
-            local textY = screenHeight / 2 - hight -- Justera för fontens höjd
-            local text = highscores[i].name .. ": " .. highscores[i].score
-            love.graphics.printf(text, 0, textY, screenWidth, "center")
-            hight = hight - 20
+        for i, entry in ipairs(highscores) do
+            local yPos = 120 + (i * 40) -- 40 pixlar mellanrum är bra för fingrar på mobilen
+            local text = i .. ". " .. entry.name .. ": " .. entry.score
+            love.graphics.printf(text, 0, yPos, screenWidth, "center")
         end
 
-        --skriver ut knappar
-        local green = {0.2, 0.6, 0.2}
-        local red = {0.6, 0.2, 0.2}
-        ui.button("Spela igen", green, buttonX, playAgainY, buttonWidth, buttonHeight)
-        ui.button("AVSLUTA", red, buttonX, quitY, buttonWidth, buttonHeight)       
+        -- 4. Knappar längst ner (Dynamiskt placerade)
+        local btnWidth = 200
+        local btnHeight = 60
+        local btnX = (screenWidth / 2) - (btnWidth / 2)
+        
+        -- "Spela igen" hamnar 180 pixlar från botten
+        ui.button("SPELA IGEN", {0.2, 0.6, 0.2}, btnX, screenHeight - 180, btnWidth, btnHeight)
+        
+        -- "Avsluta" hamnar 100 pixlar från botten
+        ui.button("AVSLUTA", {0.6, 0.2, 0.2}, btnX, screenHeight - 100, btnWidth, btnHeight)
+
     end
-
 end
-
 --- Executed when a mouse button is pressed.
 -- @number x The x-position of the mouse pointer in the window
 -- @number y The y-position of the mouse pointer in the window
 -- @number button Index of the mouse button (1 = left, 2 = right, 3 = middle)
 -- @bool istouch Indicates whether the press came from a touch screen
 -- @number presses Number of clicks in rapid succession (used for e.g. double-clicks)
-function love.mousepressed(x, y, button, istouch, presses)
-    if gameState == "highscore_list" and button == 1 then -- 1 är vänsterklick
+function love.mousepressed(x, y, button)
+    if gameState == "highscore_list" and button == 1 then
+        local screenWidth = love.graphics.getWidth()
+        local screenHeight = love.graphics.getHeight()
         
-        -- Kolla om klicket var inom "Play Again"
-        if x > buttonX and x < buttonX + buttonWidth and
-           y > playAgainY and y < playAgainY + buttonHeight then
-            coinCounter = 0
+        -- Samma mått som i din draw-funktion
+        local btnWidth = 200
+        local btnHeight = 60
+        local btnX = (screenWidth / 2) - (btnWidth / 2)
+        
+        -- Positioner för knapparna (måste matcha draw exakt!)
+        local playAgainY = screenHeight - 180
+        local quitY = screenHeight - 100
+
+        -- 1. Kolla "SPELA IGEN"
+        if x > btnX and x < btnX + btnWidth and
+           y > playAgainY and y < playAgainY + btnHeight then
+            print("Startar om spelet...")
             points = 0
-            gameState = resetGame() -- Anropa en funktion för att starta om
+            -- Om resetGame() returnerar "playing", så sätts gameState till det
+            gameState = resetGame() 
         end
 
-        -- Kolla om klicket var inom "Quit"
-        if x > buttonX and x < buttonX + buttonWidth and
-           y > quitY and y < quitY + buttonHeight then
-            love.event.quit() -- Stänger ner spelet
+        -- 2. Kolla "AVSLUTA"
+        if x > btnX and x < btnX + btnWidth and
+           y > quitY and y < quitY + btnHeight then
+            love.event.quit()
         end
     end
 end
@@ -473,14 +475,22 @@ end
 --- Executed when a key is pressed.
 -- @string key The name of the key (e.g. "space", "escape", "a")
 function love.keypressed(key)
+
+    if key == "escape" then
+        love.event.quit()
+    end
+
     if gameState == "gameover" then
         if key == "backspace" then
+            print("backspace!!")
             -- Ta bort sista tecknet
             local byteoffset = utf8.offset(playerName, -1)
             if byteoffset then
                 playerName = string.sub(playerName, 1, byteoffset - 1)
             end
+        
         elseif key == "return" then
+            print("Försöker spara! Namn: " .. playerName .. " Poäng: " .. tostring(points))
             -- Spara namnet och poängen när man trycker Enter
             ui.highScore(highscores, playerName, points)
             playerName = ""
@@ -509,12 +519,6 @@ function resetGame()
     coins = {}      -- TÖM DESSA!
     -- ... återställ spelarens position ...
     return "playing"
-end
-
-function love.keypressed(key)
-    if key == "escape" then
-        love.event.quit()
-    end
 end
 
 function love.touchmoved(id, x, y, dx, dy)
