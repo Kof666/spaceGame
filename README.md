@@ -12,10 +12,10 @@ I use vs code and have loaded both [lua](https://www.lua.org/download.html) and 
 **bygg android app**
 Du måste ha love-11.5-android.apk och min-nyckel.keystone i samma mapp...
 
-bygg
+bygg:
 apktool b --use-aapt2 build_folder -o spacegame.apk
 
-signera
+signera:
 apksigner sign --ks min-nyckel.keystore --ks-key-alias koffe spacegame.apk
 
 hep
