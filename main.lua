@@ -5,6 +5,8 @@
 
 local ui = require("ui") --modul med funktioner
 
+local utf8 = require("utf8") -- Denna rad "tänder lampan" för utf8-funktionerna
+
 local lastTouchX, lastTouchY = 0, 0
 local isTouching = false
 
@@ -28,6 +30,19 @@ local player = {} --spelarens symbol..
 local coins, astroids, ufos
 local points, level
 
+function love.resize(w, h)
+    -- Vi hittar den kortaste sidan (på mobilen är det bredden, på datorn höjden)
+    local shortestSide = math.min(w, h)
+
+    -- Nu baserar vi storleken på den kortaste sidan istället
+    local bigSize = math.floor(shortestSide / 10)
+    local mediumSize = math.floor(shortestSide / 18)
+    local smallSize = math.floor(shortestSide / 25)
+
+    myBigFont = love.graphics.newFont(bigSize)
+    myMediumFont = love.graphics.newFont(mediumSize)
+    mySmallFont = love.graphics.newFont(smallSize)
+end
 
 --- Initializes the game on startup.
 -- Runs only once. Used to load resources such as images, 
@@ -54,8 +69,9 @@ function love.load()
 
     background = love.graphics.newImage("pics/background.png")
 
-    myBigFont = love.graphics.newFont(60)
-    myMediumFont = love.graphics.newFont(20)
+    -- Kör resize-funktionen direkt så fonterna skapas med en gång
+    love.resize(love.graphics.getWidth(), love.graphics.getHeight())
+
     -- Ladda in bildfilen
     player.img = love.graphics.newImage("pics/player.png")
     -- halfSize = (player.img:getWidth() * 0.5)
@@ -89,14 +105,6 @@ function love.load()
     quitY = 420
 
     ui.createdListFile(highscores, 'scores.txt')
-    --skapar fil med highscore listan 
-    if love.filesystem.getInfo("scores.txt") then
-        local data = love.filesystem.read("scores.txt")
-        for line in data:gmatch("[^\r\n]+") do
-            local name, score = line:match("([^,]+),(.+)")
-            table.insert(highscores, {name = name, score = tonumber(score)})
-        end
-    end
 
 end
 
@@ -193,20 +201,41 @@ function love.update(dt)
                 -- counter = counter + 1
             end
             
-            -- Enklare kollision (inte perfekt men fungerar som en startpunkt):
-            -- Kolla om rektangelns bounding box och cirkeln har någon överlapp
-            local closestX = math.max(ufo.x, math.min(player.x, ufo.x + ufo.width))
-            local closestY = math.max(ufo.y, math.min(player.y, ufo.y + ufo.height))
+            -- -- Enklare kollision (inte perfekt men fungerar som en startpunkt):
+            -- -- Kolla om rektangelns bounding box och cirkeln har någon överlapp
+            -- local closestX = math.max(ufo.x, math.min(player.x, ufo.x + ufo.width))
+            -- local closestY = math.max(ufo.y, math.min(player.y, ufo.y + ufo.height))
             
-            local distanceX = player.x - closestX
-            local distanceY = player.y - closestY
+            -- local distanceX = player.x - closestX
+            -- local distanceY = player.y - closestY
             
-            local distanceSquared = (distanceX * distanceX) + (distanceY * distanceY)
+            -- local distanceSquared = (distanceX * distanceX) + (distanceY * distanceY)
 
-            if distanceSquared < (collisionRadius * collisionRadius) then
-                gameState = "gameover"
-                print("Kollision med ufo! Game over")
-            end
+            -- if distanceSquared < (collisionRadius * collisionRadius) then
+            --     gameState = "gameover"
+            --     print("Kollision med ufo! Game over")
+            --     love.keyboard.setTextInput(true)-- <--- tar fram tangentbord i android
+            -- end
+
+        -- 1. Centerpunkter
+        local ufoCenterX = ufo.x + ufo.width / 2
+        local ufoCenterY = ufo.y + ufo.height / 2
+
+        -- 2. Avstånd
+        local dx = player.x - ufoCenterX
+        local dy = player.y - ufoCenterY
+
+        -- 3. MATTEN (Vi ändrar 2 till 2.5 eller 3 för att göra den plattare)
+        -- Ju högre siffra på dy, desto plattare blir zonen (svårare att krocka uppifrån)
+        local distanceSquared = (dx * dx) + (dy * 2.5 * dy * 2.5) 
+
+        -- 4. RADIE (Vi ökar 0.45 till 0.55 så den når ut till vingarna)
+        local combinedRadius = (ufo.width * 0.55) + collisionRadius
+
+        if distanceSquared < (combinedRadius * combinedRadius) then
+            gameState = "gameover"
+            love.keyboard.setTextInput(true)
+        end
         end
 
 
@@ -233,19 +262,49 @@ function love.update(dt)
                 counter = counter + 1
             end
             
-            -- Enklare kollision (inte perfekt men fungerar som en startpunkt):
-            -- Kolla om rektangelns bounding box och cirkeln har någon överlapp
-            local closestX = math.max(astroid.x, math.min(player.x, astroid.x + astroid.width))
-            local closestY = math.max(astroid.y, math.min(player.y, astroid.y + astroid.height))
+            -- -- Enklare kollision (inte perfekt men fungerar som en startpunkt):
+            -- -- Kolla om rektangelns bounding box och cirkeln har någon överlapp
+            -- local closestX = math.max(astroid.x, math.min(player.x, astroid.x + astroid.width))
+            -- local closestY = math.max(astroid.y, math.min(player.y, astroid.y + astroid.height))
             
+            -- local distanceX = player.x - closestX
+            -- local distanceY = player.y - closestY
+            
+            -- local distanceSquared = (distanceX * distanceX) + (distanceY * distanceY)
+
+            -- if distanceSquared < (collisionRadius * collisionRadius) then
+            --     gameState = "gameover"
+            --     print("Kollision! Game over")
+            --     love.keyboard.setTextInput(true)
+            -- end
+
+            -- 1. Hitta centumpunkten för både spelaren och asteroiden
+
+            -- 1. Definiera hur stor del av bilden som är "sten" (justera dessa värden!)
+            -- Om bilden är 100px hög och stenen är de nedersta 40px:
+            local fireHeight = astroid.height * 0.6 -- 60% är eld
+            local rockWidth = astroid.width * 0.8 -- Stenen är lite smalare än bilden
+
+            -- 2. Skapa den osynliga boxen (hitboxen) som bara täcker stenen
+            local hitboxX = astroid.x + (astroid.width - rockWidth) / 2 -- Centrera boxen i sidled
+            local hitboxY = astroid.y + fireHeight -- Starta boxen under elden
+            local hitboxW = rockWidth
+            local hitboxH = astroid.height - fireHeight -- Boxens höjd är bara stenens höjd
+
+            -- 3. Kör AABB-kollisionen mot denna nya, mindre box
+            local closestX = math.max(hitboxX, math.min(player.x, hitboxX + hitboxW))
+            local closestY = math.max(hitboxY, math.min(player.y, hitboxY + hitboxH))
+
             local distanceX = player.x - closestX
             local distanceY = player.y - closestY
-            
+
+            -- 4. Använd din befintliga radie-kollision
             local distanceSquared = (distanceX * distanceX) + (distanceY * distanceY)
 
-            if distanceSquared < (collisionRadius * collisionRadius) then
+            -- Minska collisionRadius lite för spelaren också om det känns för känsligt
+            if distanceSquared < (collisionRadius * 0.8)^2 then 
                 gameState = "gameover"
-                print("Kollision! Game over")
+                love.keyboard.setTextInput(true)
             end
         end
     
@@ -494,6 +553,7 @@ function love.keypressed(key)
             -- Spara namnet och poängen när man trycker Enter
             ui.highScore(highscores, playerName, points)
             playerName = ""
+            love.keyboard.setTextInput(false) -- <--- DENNA RAD GÖMMER TANGENTBORDET
             gameState = "highscore_list"
         end
     end
@@ -527,5 +587,15 @@ function love.touchmoved(id, x, y, dx, dy)
         -- Vi flyttar spelaren med exakt samma mängd
         player.x = player.x + dx
         player.y = player.y + dy
+    end
+end
+
+-- gör att android tangentbord funkar
+function love.textinput(t)
+    if gameState == "gameover" then
+        -- Vi tillåter bara namn upp till 10 tecken så det inte rinner utanför skärmen
+        if #playerName < 10 then
+            playerName = playerName .. t
+        end
     end
 end

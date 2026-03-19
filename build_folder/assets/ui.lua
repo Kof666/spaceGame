@@ -24,13 +24,30 @@ end
 -- @tparam table highscores     the table you use as highscore
 -- @tparam string filename       the name for the file. HAS TO END AS .txt
 function ui.createdListFile(highscores, filename)
-    --skapar fil med highscore listan 
+    -- 1. Kolla om filen finns
     if love.filesystem.getInfo(filename) then
         local data = love.filesystem.read(filename)
         for line in data:gmatch("[^\r\n]+") do
             local name, score = line:match("([^,]+),(.+)")
-            table.insert(highscores, {name = name, score = tonumber(score)})
+            if name and score then
+                -- VIKTIGT: or 0 räddar oss om tonumber misslyckas
+                table.insert(highscores, {name = name, score = tonumber(score) or 0})
+            end
         end
+    end
+
+    -- 2. Om listan fortfarande är tom (t.ex. första gången på mobilen),
+    -- fyll den med standardvärden så att sorteringen inte kraschar senare!
+    if #highscores == 0 then
+        for i = 1, 10 do
+            table.insert(highscores, {name = "---", score = 0})
+        end
+        -- Skapa filen direkt så den finns till nästa gång
+        local initialData = ""
+        for _, v in ipairs(highscores) do
+            initialData = initialData .. v.name .. "," .. v.score .. "\n"
+        end
+        love.filesystem.write(filename, initialData)
     end
 end
 

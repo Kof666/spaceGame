@@ -1,0 +1,10 @@
+comments.md
+
+# OS-skräp
+.DS_Store
+Thumbs.db
+
+# LÖVE-specifikt (om du skapar builds)
+*.love
+/dist/
+build/
