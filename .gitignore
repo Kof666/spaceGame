@@ -1,10 +1,16 @@
 comments.md
+.comments.md
 
 # OS-skräp
 .DS_Store
 Thumbs.db
 
-# LÖVE-specifikt (om du skapar builds)
-*.love
+# Byggfiler och mappar
+*.apk
+*.idsig
+build_folder/
 /dist/
 build/
+
+# LÖVE-filer
+*.love
